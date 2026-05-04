@@ -41,7 +41,13 @@ public class OrderService {
         items.forEach(item -> item.setOrder(order));
 
         Order savedOrder = orderRepository.save(order);
-        // TODO: Publish OrderCreated event to RabbitMQ exchange (not implemented)
+
+        // TODO: Build OrderCreatedEvent (eventId, eventType, version, occurredAt, orderId, customerId, amount, status)
+        // TODO: Publish OrderCreatedEvent to RabbitMQ exchange "orders.exchange" with routing key "order.created"
+        // TODO: PaymentListener and NotificationListener will each receive a copy via their bound queues (fanout)
+        // TODO: Implement retry with exponential backoff and Dead Letter Queue (DLQ) on consumer failure
+        // TODO: Consumers must check eventId for idempotency before processing (at-least-once delivery)
+
         return orderMapper.toOrderResponse(savedOrder);
     }
 

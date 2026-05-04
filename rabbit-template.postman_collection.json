@@ -1,0 +1,283 @@
+{
+  "info": {
+    "name": "Rabbit Template",
+    "description": "Order management API designed for future event-driven architecture with RabbitMQ (messaging not implemented yet)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"customer-123\",\n  \"amount\": 99.99,\n  \"items\": [\n    {\n      \"productId\": \"product-abc\",\n      \"quantity\": 2\n    },\n    {\n      \"productId\": \"product-xyz\",\n      \"quantity\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Creates a new order. Returns HTTP 201 with the created OrderResponse.\n\nValidation rules:\n- customerId: must not be blank\n- amount: must not be null\n- items: must not be null or empty\n- items[].productId: must not be blank\n- items[].quantity: must not be null, minimum 1"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"orderId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"status\": \"CREATED\",\n  \"amount\": 99.99,\n  \"createdAt\": \"2026-04-29T15:00:00\"\n}",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/orders"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customerId\": \"customer-123\",\n  \"amount\": 99.99,\n  \"items\": [\n    {\n      \"productId\": \"product-abc\",\n      \"quantity\": 2\n    }\n  ]\n}"
+                }
+              }
+            },
+            {
+              "name": "400 Bad Request - Validation Error",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"errors\": [\n    \"customerId: must not be blank\",\n    \"items: must not be empty\"\n  ]\n}",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{baseUrl}}/orders"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"customerId\": \"\",\n  \"amount\": 99.99,\n  \"items\": []\n}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Order - Invalid (blank customerId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"\",\n  \"amount\": 50.00,\n  \"items\": [\n    {\n      \"productId\": \"product-abc\",\n      \"quantity\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Demonstrates HTTP 400 when customerId is blank."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order - Invalid (empty items)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"customer-123\",\n  \"amount\": 50.00,\n  \"items\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Demonstrates HTTP 400 when items list is empty."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order - Invalid (quantity < 1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"customer-123\",\n  \"amount\": 50.00,\n  \"items\": [\n    {\n      \"productId\": \"product-abc\",\n      \"quantity\": 0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Demonstrates HTTP 400 when item quantity is less than 1."
+          },
+          "response": []
+        },
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            },
+            "description": "Returns all orders. HTTP 200 with a JSON array of OrderResponse objects."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"orderId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"status\": \"CREATED\",\n    \"amount\": 99.99,\n    \"createdAt\": \"2026-04-29T15:00:00\"\n  },\n  {\n    \"orderId\": \"660e8400-e29b-41d4-a716-446655440001\",\n    \"status\": \"CREATED\",\n    \"amount\": 49.50,\n    \"createdAt\": \"2026-04-29T16:00:00\"\n  }\n]",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/orders"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}"],
+              "variable": [
+                {
+                  "key": "orderId",
+                  "value": "550e8400-e29b-41d4-a716-446655440000",
+                  "description": "UUID of the order to retrieve"
+                }
+              ]
+            },
+            "description": "Returns a single order by UUID. HTTP 200 if found, HTTP 404 if not found."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"orderId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"status\": \"CREATED\",\n  \"amount\": 99.99,\n  \"createdAt\": \"2026-04-29T15:00:00\"\n}",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/orders/550e8400-e29b-41d4-a716-446655440000"
+                }
+              }
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Order not found: 550e8400-e29b-41d4-a716-446655440000\"\n}",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{baseUrl}}/orders/550e8400-e29b-41d4-a716-446655440000"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Order by ID - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "00000000-0000-0000-0000-000000000000"]
+            },
+            "description": "Demonstrates HTTP 404 when the order UUID does not exist."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

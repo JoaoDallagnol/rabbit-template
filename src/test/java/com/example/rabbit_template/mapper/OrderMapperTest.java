@@ -4,8 +4,6 @@ import com.example.rabbit_template.domain.Order;
 import com.example.rabbit_template.domain.OrderItem;
 import com.example.rabbit_template.dto.OrderItemRequest;
 import com.example.rabbit_template.dto.OrderResponse;
-import net.jqwik.api.*;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
