@@ -1,0 +1,460 @@
+openapi: 3.0.0
+info:
+  title: Rabbit Template API
+  description: |
+    API de demonstração de padrões RabbitMQ com Topic Exchange, Fanout Exchange, Retry, DLQ e Idempotência.
+    
+    Este projeto implementa diferentes cenários de integração com RabbitMQ:
+    - **Topic Exchange**: Roteamento seletivo baseado em routing keys
+    - **Fanout Exchange**: Broadcast para múltiplos listeners
+    - **Retry com Exponential Backoff**: Tentativas automáticas com delay crescente
+    - **Dead Letter Queue (DLQ)**: Armazenamento de mensagens que falharam
+    - **Idempotência**: Prevenção de processamento duplicado
+  version: 1.0.0
+  contact:
+    name: Rabbit Template Project
+    url: https://github.com/seu-usuario/rabbit-template
+
+servers:
+  - url: http://localhost:8080
+    description: Servidor Local
+  - url: http://localhost:8080/api
+    description: Servidor Local com /api prefix
+
+tags:
+  - name: Orders - Topic Exchange
+    description: Endpoints que publicam eventos via Topic Exchange (roteamento seletivo)
+  - name: Orders - Fanout Exchange
+    description: Endpoints que publicam eventos via Fanout Exchange (broadcast)
+  - name: Orders - Consultas
+    description: Endpoints para consultar pedidos
+
+paths:
+  /orders/topic:
+    post:
+      tags:
+        - Orders - Topic Exchange
+      summary: Criar pedido via Topic Exchange
+      description: |
+        Cria um novo pedido e publica o evento `OrderCreatedEvent` via **Topic Exchange**.
+        
+        **Fluxo:**
+        1. Pedido é salvo no banco de dados
+        2. Evento é publicado em `orders.topic.exchange` com routing key `orders.created`
+        3. Apenas listeners vinculados a este routing key recebem a mensagem
+        4. PaymentTopicListener processa o pagamento
+        
+        **Padrão:** Topic Exchange (Roteamento Seletivo)
+        
+        **Características:**
+        - Roteamento baseado em routing key
+        - Apenas listeners interessados recebem a mensagem
+        - Ideal para diferentes tipos de eventos com lógica de roteamento
+      operationId: createOrderViaTopic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+            examples:
+              example1:
+                summary: Pedido simples
+                value:
+                  customerId: "CUST-001"
+                  amount: 150.50
+                  items:
+                    - productId: "PROD-001"
+                      quantity: 2
+                      price: 75.25
+      responses:
+        '201':
+          description: Pedido criado com sucesso e evento publicado em Topic Exchange
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+              examples:
+                success:
+                  summary: Resposta de sucesso
+                  value:
+                    orderId: "550e8400-e29b-41d4-a716-446655440000"
+                    customerId: "CUST-001"
+                    amount: 150.50
+                    status: "CREATED"
+                    createdAt: "2026-05-08T10:30:00"
+                    items:
+                      - orderItemId: "550e8400-e29b-41d4-a716-446655440001"
+                        productId: "PROD-001"
+                        quantity: 2
+                        price: 75.25
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro ao publicar evento no RabbitMQ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/fanout:
+    post:
+      tags:
+        - Orders - Fanout Exchange
+      summary: Criar pedido via Fanout Exchange
+      description: |
+        Cria um novo pedido e publica o evento `OrderCreatedEvent` via **Fanout Exchange**.
+        
+        **Fluxo:**
+        1. Pedido é salvo no banco de dados
+        2. Evento é publicado em `orders.fanout.exchange` (sem routing key)
+        3. Todos os listeners vinculados à exchange recebem a mensagem
+        4. PaymentFanoutListener, NotificationFanoutListener e AnalyticsFanoutListener processam em paralelo
+        
+        **Padrão:** Fanout Exchange (Broadcast)
+        
+        **Características:**
+        - Broadcast para todos os listeners
+        - Todos recebem a mesma mensagem
+        - Ideal para eventos que múltiplos serviços precisam processar
+      operationId: createOrderViaFanout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+            examples:
+              example1:
+                summary: Pedido simples
+                value:
+                  customerId: "CUST-002"
+                  amount: 250.00
+                  items:
+                    - productId: "PROD-002"
+                      quantity: 1
+                      price: 250.00
+      responses:
+        '201':
+          description: Pedido criado com sucesso e evento publicado em Fanout Exchange
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+              examples:
+                success:
+                  summary: Resposta de sucesso
+                  value:
+                    orderId: "550e8400-e29b-41d4-a716-446655440002"
+                    customerId: "CUST-002"
+                    amount: 250.00
+                    status: "CREATED"
+                    createdAt: "2026-05-08T10:35:00"
+                    items:
+                      - orderItemId: "550e8400-e29b-41d4-a716-446655440003"
+                        productId: "PROD-002"
+                        quantity: 1
+                        price: 250.00
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro ao publicar evento no RabbitMQ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders:
+    get:
+      tags:
+        - Orders - Consultas
+      summary: Listar todos os pedidos
+      description: |
+        Retorna uma lista de todos os pedidos criados no sistema.
+        
+        **Nota:** Esta operação não publica eventos no RabbitMQ, apenas consulta o banco de dados.
+      operationId: listOrders
+      responses:
+        '200':
+          description: Lista de pedidos retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderResponse'
+              examples:
+                success:
+                  summary: Lista com 2 pedidos
+                  value:
+                    - orderId: "550e8400-e29b-41d4-a716-446655440000"
+                      customerId: "CUST-001"
+                      amount: 150.50
+                      status: "CREATED"
+                      createdAt: "2026-05-08T10:30:00"
+                      items:
+                        - orderItemId: "550e8400-e29b-41d4-a716-446655440001"
+                          productId: "PROD-001"
+                          quantity: 2
+                          price: 75.25
+                    - orderId: "550e8400-e29b-41d4-a716-446655440002"
+                      customerId: "CUST-002"
+                      amount: 250.00
+                      status: "CREATED"
+                      createdAt: "2026-05-08T10:35:00"
+                      items:
+                        - orderItemId: "550e8400-e29b-41d4-a716-446655440003"
+                          productId: "PROD-002"
+                          quantity: 1
+                          price: 250.00
+        '500':
+          description: Erro ao consultar banco de dados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}:
+    get:
+      tags:
+        - Orders - Consultas
+      summary: Obter pedido por ID
+      description: |
+        Retorna os detalhes de um pedido específico pelo seu ID.
+        
+        **Nota:** Esta operação não publica eventos no RabbitMQ, apenas consulta o banco de dados.
+      operationId: getOrderById
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: ID único do pedido (UUID)
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Pedido encontrado e retornado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+              examples:
+                success:
+                  summary: Pedido encontrado
+                  value:
+                    orderId: "550e8400-e29b-41d4-a716-446655440000"
+                    customerId: "CUST-001"
+                    amount: 150.50
+                    status: "CREATED"
+                    createdAt: "2026-05-08T10:30:00"
+                    items:
+                      - orderItemId: "550e8400-e29b-41d4-a716-446655440001"
+                        productId: "PROD-001"
+                        quantity: 2
+                        price: 75.25
+        '404':
+          description: Pedido não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  summary: Pedido não existe
+                  value:
+                    error: "Order not found"
+                    message: "Order with ID 550e8400-e29b-41d4-a716-446655440999 not found"
+                    timestamp: "2026-05-08T10:40:00"
+        '500':
+          description: Erro ao consultar banco de dados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    OrderRequest:
+      type: object
+      required:
+        - customerId
+        - amount
+        - items
+      properties:
+        customerId:
+          type: string
+          description: ID único do cliente
+          example: "CUST-001"
+          minLength: 1
+          maxLength: 50
+        amount:
+          type: number
+          format: double
+          description: Valor total do pedido
+          example: 150.50
+          minimum: 0.01
+        items:
+          type: array
+          description: Lista de itens do pedido
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/OrderItemRequest'
+
+    OrderItemRequest:
+      type: object
+      required:
+        - productId
+        - quantity
+        - price
+      properties:
+        productId:
+          type: string
+          description: ID único do produto
+          example: "PROD-001"
+          minLength: 1
+          maxLength: 50
+        quantity:
+          type: integer
+          description: Quantidade do produto
+          example: 2
+          minimum: 1
+        price:
+          type: number
+          format: double
+          description: Preço unitário do produto
+          example: 75.25
+          minimum: 0.01
+
+    OrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: ID único do pedido
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        customerId:
+          type: string
+          description: ID único do cliente
+          example: "CUST-001"
+        amount:
+          type: number
+          format: double
+          description: Valor total do pedido
+          example: 150.50
+        status:
+          type: string
+          description: Status atual do pedido
+          example: "CREATED"
+          enum:
+            - CREATED
+            - PENDING_PAYMENT
+            - PAID
+            - SHIPPED
+            - DELIVERED
+            - CANCELLED
+        createdAt:
+          type: string
+          format: date-time
+          description: Data e hora de criação do pedido
+          example: "2026-05-08T10:30:00"
+        items:
+          type: array
+          description: Lista de itens do pedido
+          items:
+            $ref: '#/components/schemas/OrderItemResponse'
+
+    OrderItemResponse:
+      type: object
+      properties:
+        orderItemId:
+          type: string
+          format: uuid
+          description: ID único do item do pedido
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        productId:
+          type: string
+          description: ID único do produto
+          example: "PROD-001"
+        quantity:
+          type: integer
+          description: Quantidade do produto
+          example: 2
+        price:
+          type: number
+          format: double
+          description: Preço unitário do produto
+          example: 75.25
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Tipo de erro
+          example: "Bad Request"
+        message:
+          type: string
+          description: Mensagem descritiva do erro
+          example: "Invalid order request"
+        timestamp:
+          type: string
+          format: date-time
+          description: Data e hora do erro
+          example: "2026-05-08T10:40:00"
+
+    OrderCreatedEvent:
+      type: object
+      description: Evento publicado quando um pedido é criado
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: ID único do evento
+          example: "550e8400-e29b-41d4-a716-446655440100"
+        eventType:
+          type: string
+          description: Tipo do evento
+          example: "ORDER_CREATED"
+          enum:
+            - ORDER_CREATED
+            - ORDER_PAID
+            - ORDER_SHIPPED
+            - ORDER_CANCELLED
+        version:
+          type: string
+          description: Versão do evento
+          example: "v1"
+        occurredAt:
+          type: string
+          format: date-time
+          description: Data e hora em que o evento ocorreu
+          example: "2026-05-08T10:30:00"
+        orderId:
+          type: string
+          format: uuid
+          description: ID do pedido relacionado
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        customerId:
+          type: string
+          description: ID do cliente
+          example: "CUST-001"
+        amount:
+          type: number
+          format: double
+          description: Valor do pedido
+          example: 150.50
+        status:
+          type: string
+          description: Status do pedido
+          example: "CREATED"
