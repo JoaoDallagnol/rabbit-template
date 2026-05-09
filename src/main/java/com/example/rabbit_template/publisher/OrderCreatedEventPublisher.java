@@ -23,14 +23,15 @@ public class OrderCreatedEventPublisher {
     public void publish(OrderCreatedEvent event) {
         try {
             // parseObjectToJson() converte o objeto OrderCreatedEvent em uma String JSON
-            String payloadToSend = parseObjectToJson(event);
+            //String payloadToSend = parseObjectToJson(event);
 
             // convertAndSend() é o metodo principal do RabbitTemplate para enviar mensagens
-            // Parâmetro 1: ORDER_CREATE_EXCHANGE - nome da exchange ("orders.exchange")
-            // Parâmetro 2: ORDER_CREATE_KEY - routing key ("orders.created")
-            // Parâmetro 3: payloadToSend - o conteúdo da mensagem em formato JSON
+            // payloadToSend - o conteúdo da mensagem em formato JSON
             // A exchange receberá a mensagem e a roteará para filas baseado no routing key
-            this.rabbitTemplate.convertAndSend(ORDER_CREATE_EXCHANGE, ORDER_CREATE_KEY, payloadToSend);
+            // Como configuramos o MessageConverter no RabbitTemplate, o content-type será application/json
+            this.rabbitTemplate.convertAndSend(ORDER_CREATE_EXCHANGE, ORDER_CREATE_KEY, event);
+
+            log.info("OrderCreatedEventPublisher.publish - END - eventId: {}", event.getEventId());
         } catch (Exception e) {
             // Se ocorrer qualquer exceção durante a publicação, registra um erro no log
             // log.error() escreve a mensagem de erro no arquivo de log da aplicação

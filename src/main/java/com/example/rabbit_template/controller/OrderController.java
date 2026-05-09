@@ -1,6 +1,5 @@
 package com.example.rabbit_template.controller;
 
-import com.example.rabbit_template.domain.Order;
 import com.example.rabbit_template.dto.OrderRequest;
 import com.example.rabbit_template.dto.OrderResponse;
 import com.example.rabbit_template.service.OrderService;

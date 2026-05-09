@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static com.example.rabbit_template.constants.Status.CREATED;
+
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -35,7 +37,7 @@ public class OrderService {
         Order order = Order.builder()
                 .customerId(request.getCustomerId())
                 .amount(request.getAmount())
-                .status("CREATED")
+                .status(CREATED.name())
                 .createdAt(LocalDateTime.now())
                 .items(items)
                 .build();

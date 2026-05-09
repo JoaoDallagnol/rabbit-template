@@ -8,4 +8,5 @@ public class RabbitConstants {
 
     public static final String ORDER_CREATE_EXCHANGE = "orders.exchange";
     public static final String ORDER_CREATE_KEY = "orders.created";
+    public static final String PAYMENT_QUEUE = "payment.queue.topic";
 }
