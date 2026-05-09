@@ -1,5 +1,6 @@
 package com.example.rabbit_template.controller;
 
+import com.example.rabbit_template.domain.Order;
 import com.example.rabbit_template.dto.OrderRequest;
 import com.example.rabbit_template.dto.OrderResponse;
 import com.example.rabbit_template.service.OrderService;
@@ -21,9 +22,15 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody OrderRequest request) {
-        OrderResponse response = orderService.createOrder(request);
+    @PostMapping("/topic")
+    public ResponseEntity<OrderResponse> createOrderTopic(@Valid @RequestBody OrderRequest request) {
+        OrderResponse response = orderService.createOrderTopic(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/fanout")
+    public ResponseEntity<OrderResponse> createOrderFanout(@Valid @RequestBody OrderRequest request) {
+        OrderResponse response = orderService.createOrderFanout(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

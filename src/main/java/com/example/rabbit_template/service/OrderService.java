@@ -10,6 +10,7 @@ import com.example.rabbit_template.exception.OrderNotFoundException;
 import com.example.rabbit_template.mapper.OrderMapper;
 import com.example.rabbit_template.publisher.OrderCreatedEventPublisher;
 import com.example.rabbit_template.repository.OrderRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +27,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final OrderCreatedEventPublisher orderCreatedEventPublisher;
 
-    public OrderResponse createOrder(OrderRequest request) {
+    public OrderResponse createOrderTopic(OrderRequest request) {
         List<OrderItem> items = request.getItems().stream()
                 .map(orderMapper::toOrderItem)
                 .collect(Collectors.toList());
@@ -44,6 +45,7 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         // TODO: Build OrderCreatedEvent (eventId, eventType, version, occurredAt, orderId, customerId, amount, status)
+        // TODO: Publish OrderCreatedEvent to Topic Exchange with routing key "orders.created"
         OrderCreatedEvent event = new OrderCreatedEvent(
                 UUID.randomUUID(),
                 EventType.ORDER_CREATED.name(),
@@ -55,14 +57,30 @@ public class OrderService {
                 savedOrder.getStatus()
         );
 
-        // TODO: Publish OrderCreatedEvent to RabbitMQ exchange "orders.exchange" with routing key "order.created"
         orderCreatedEventPublisher.publish(event);
-
-        // TODO: PaymentListener and NotificationListener will each receive a copy via their bound queues (fanout)
-        // TODO: Implement retry with exponential backoff and Dead Letter Queue (DLQ) on consumer failure
-        // TODO: Consumers must check eventId for idempotency before processing (at-least-once delivery)
-
         return orderMapper.toOrderResponse(savedOrder);
+    }
+
+    public OrderResponse createOrderFanout(@Valid OrderRequest request) {
+        List<OrderItem> items = request.getItems().stream()
+                .map(orderMapper::toOrderItem)
+                .collect(Collectors.toList());
+
+        Order order = Order.builder()
+                .customerId(request.getCustomerId())
+                .amount(request.getAmount())
+                .status("CREATED")
+                .createdAt(LocalDateTime.now())
+                .items(items)
+                .build();
+
+        items.forEach(item -> item.setOrder(order));
+
+        Order savedOrder = orderRepository.save(order);
+
+        // TODO: Build OrderCreatedEvent (eventId, eventType, version, occurredAt, orderId, customerId, amount, status)
+        // TODO: Publish OrderCreatedEvent to Fanout Exchange (broadcast to all listeners)
+        return null;
     }
 
     public List<OrderResponse> listOrders() {
