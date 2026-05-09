@@ -45,7 +45,6 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         // TODO: Build OrderCreatedEvent (eventId, eventType, version, occurredAt, orderId, customerId, amount, status)
-        // TODO: Publish OrderCreatedEvent to Topic Exchange with routing key "orders.created"
         OrderCreatedEvent event = new OrderCreatedEvent(
                 UUID.randomUUID(),
                 EventType.ORDER_CREATED.name(),
@@ -57,7 +56,9 @@ public class OrderService {
                 savedOrder.getStatus()
         );
 
+        // TODO: Publish OrderCreatedEvent to Topic Exchange with routing key "orders.created"
         orderCreatedEventPublisher.publish(event);
+
         return orderMapper.toOrderResponse(savedOrder);
     }
 
