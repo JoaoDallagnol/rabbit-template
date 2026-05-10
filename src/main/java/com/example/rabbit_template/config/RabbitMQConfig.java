@@ -23,6 +23,12 @@ public class RabbitMQConfig {
         return new TopicExchange(ORDER_CREATE_EXCHANGE);
     }
 
+    // Mesma logica mas utilizando o FanoutExchange pois é do contexto de fanout
+    @Bean
+    FanoutExchange createOrderFanoutExchange() {
+        return new FanoutExchange(ORDER_CREATE_FANOUT_EXCHANGE);
+    }
+
     // Queue é uma fila do RabbitMQ que armazena mensagens até serem consumidas
     // QueueBuilder.durable() cria uma fila durável (persiste mesmo se RabbitMQ reiniciar)
     @Bean

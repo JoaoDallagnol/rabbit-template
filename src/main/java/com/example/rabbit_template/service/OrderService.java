@@ -72,7 +72,7 @@ public class OrderService {
         Order order = Order.builder()
                 .customerId(request.getCustomerId())
                 .amount(request.getAmount())
-                .status("CREATED")
+                .status(CREATED.name())
                 .createdAt(LocalDateTime.now())
                 .items(items)
                 .build();
@@ -82,8 +82,21 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
 
         // TODO: Build OrderCreatedEvent (eventId, eventType, version, occurredAt, orderId, customerId, amount, status)
+        OrderCreatedEvent event = new OrderCreatedEvent(
+                UUID.randomUUID(),
+                EventType.ORDER_CREATED.name(),
+                "v1",
+                savedOrder.getCreatedAt(),
+                savedOrder.getOrderId(),
+                savedOrder.getCustomerId(),
+                savedOrder.getAmount(),
+                savedOrder.getStatus()
+        );
+
         // TODO: Publish OrderCreatedEvent to Fanout Exchange (broadcast to all listeners)
-        return null;
+        orderCreatedEventPublisher.publishFanout(event);
+
+        return orderMapper.toOrderResponse(savedOrder);
     }
 
     public List<OrderResponse> listOrders() {

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 public class RabbitConstants {
 
     public static final String ORDER_CREATE_EXCHANGE = "orders.exchange";
+    public static final String ORDER_CREATE_FANOUT_EXCHANGE = "orders.fanout.exchange";
     public static final String ORDER_CREATE_KEY = "orders.created";
     public static final String PAYMENT_QUEUE = "payment.queue.topic";
     public static final String PAYMENT_LISTENER_NAME = "PaymentListener";
