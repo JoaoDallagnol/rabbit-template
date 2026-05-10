@@ -23,12 +23,6 @@ public class RabbitMQConfig {
         return new TopicExchange(ORDER_CREATE_EXCHANGE);
     }
 
-    // Mesma logica mas utilizando o FanoutExchange pois é do contexto de fanout
-    @Bean
-    FanoutExchange createOrderFanoutExchange() {
-        return new FanoutExchange(ORDER_CREATE_FANOUT_EXCHANGE);
-    }
-
     // Queue é uma fila do RabbitMQ que armazena mensagens até serem consumidas
     // QueueBuilder.durable() cria uma fila durável (persiste mesmo se RabbitMQ reiniciar)
     @Bean
@@ -65,5 +59,39 @@ public class RabbitMQConfig {
         rabbitTemplate.setMessageConverter(converter());
         // Retorna o RabbitTemplate configurado
         return rabbitTemplate;
+    }
+
+
+    // --------------- FANOUT -------------
+    // Mesma logica mas utilizando o FanoutExchange pois é do contexto de fanout
+    @Bean
+    FanoutExchange createOrderFanoutExchange() {
+        return new FanoutExchange(ORDER_CREATE_FANOUT_EXCHANGE);
+    }
+
+
+    @Bean
+    Queue paymentFanoutQueue() {
+        return QueueBuilder.durable(PAYMENT_FANOUT_QUEUE).build();
+    }
+
+    @Bean
+    Queue notificationQueue() {
+        return QueueBuilder.durable(NOTIFICATION_QUEUE).build();
+    }
+
+    // Binding de fanout nao precisa de .with() pois nesse contexto n temos routing key
+    @Bean
+    Binding paymentFanoutBinding() {
+        return BindingBuilder
+                .bind(paymentFanoutQueue())
+                .to(createOrderFanoutExchange());
+    }
+
+    @Bean
+    Binding notificationBinding() {
+        return BindingBuilder
+                .bind(notificationQueue())
+                .to(createOrderFanoutExchange());
     }
 }

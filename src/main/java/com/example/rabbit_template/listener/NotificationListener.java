@@ -1,0 +1,41 @@
+package com.example.rabbit_template.listener;
+
+import com.example.rabbit_template.event.OrderCreatedEvent;
+import com.example.rabbit_template.service.IdempotencyService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+import static com.example.rabbit_template.constants.RabbitConstants.NOTIFICATION_QUEUE;
+import static com.example.rabbit_template.constants.RabbitConstants.NOTIFICATION_LISTENER_NAME;
+import static com.example.rabbit_template.constants.Status.*;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class NotificationListener {
+
+    private final IdempotencyService idempotencyService;
+
+    @RabbitListener(queues = NOTIFICATION_QUEUE)
+    public void notificationListener(OrderCreatedEvent event) {
+        try {
+            log.info("NotificationListener.notificationListener - Start");
+            boolean isAlreadyProcessed = idempotencyService.isAlreadyProcessed(event.getOrderId(), NOTIFICATION_LISTENER_NAME);
+            if (isAlreadyProcessed) {
+                log.info("Event already processed by NotificationListener for orderId: {}", event.getOrderId());
+                return;
+            }
+
+            log.info("NotificationListener.notificationListener - Processing notification for orderId: {}", event.getOrderId());
+
+            idempotencyService.markAsProcessed(event.getOrderId(), NOTIFICATION_LISTENER_NAME, SUCCESS.name());
+            log.info("NotificationListener.notificationListener - END - orderId: {}", event.getOrderId());
+        } catch (Exception e) {
+            log.error("Failed to listen to OrderCreatedEvent: {}", e.getMessage(), e);
+            idempotencyService.markAsProcessed(event.getOrderId(), NOTIFICATION_LISTENER_NAME, FAILED.name());
+            throw e;
+        }
+    }
+}
