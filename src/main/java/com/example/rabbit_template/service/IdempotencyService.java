@@ -18,12 +18,12 @@ public class IdempotencyService {
 
     private final OrderRepository orderRepository;
 
-    public boolean isAlreadyProcessed(UUID eventId, String listenerName) {
+    public boolean isAlreadyProcessed(UUID id, String listenerName) {
         try {
-            Optional<Order> order = orderRepository.findById(eventId);
+            Optional<Order> order = orderRepository.findById(id);
 
             if (order.isEmpty()) {
-                log.info("Event not found in database: {}", eventId);
+                log.info("Order not found in database: {}", id);
                 return false;
             }
 
@@ -31,8 +31,8 @@ public class IdempotencyService {
             boolean isProcessed = !existingOrder.getStatus().equals(CREATED.name());
 
             if (isProcessed) {
-                log.info("Event already processed by {}: {} with status: {}", 
-                    listenerName, eventId, existingOrder.getStatus());
+                log.info("Order already processed by {}: {} with status: {}",
+                    listenerName, id, existingOrder.getStatus());
             }
 
             return isProcessed;
@@ -42,12 +42,12 @@ public class IdempotencyService {
         }
     }
 
-    public void markAsProcessed(UUID eventId, String listenerName, String status) {
+    public void markAsProcessed(UUID id, String listenerName, String status) {
         try {
-            Optional<Order> order = orderRepository.findById(eventId);
+            Optional<Order> order = orderRepository.findById(id);
 
             if (order.isEmpty()) {
-                log.warn("Order not found to mark as processed: {}", eventId);
+                log.warn("Order not found to mark as processed: {}", id);
                 return;
             }
 
@@ -61,8 +61,8 @@ public class IdempotencyService {
 
             orderRepository.save(existingOrder);
 
-            log.info("Event marked as processed by {}: {} with status: {}", 
-                listenerName, eventId, existingOrder.getStatus());
+            log.info("Order marked as processed by {}: {} with status: {}",
+                listenerName, id, existingOrder.getStatus());
         } catch (Exception e) {
             log.error("Error marking event as processed: {}", e.getMessage(), e);
             throw e;
