@@ -2,6 +2,7 @@ package com.example.rabbit_template.config;
 
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
@@ -196,6 +197,13 @@ public class RabbitMQConfig {
         return BindingBuilder
                 .bind(notificationDLQQueue())
                 .to(createNotificationDLQExchange());
+    }
+
+    // RabbitAdmin fornece operações administrativas no RabbitMQ
+    // Usado para monitorar filas, exchanges e outras operações de gerenciamento
+    @Bean
+    public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
+        return new RabbitAdmin(connectionFactory);
     }
 
 }

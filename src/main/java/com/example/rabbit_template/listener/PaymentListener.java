@@ -29,21 +29,20 @@ public class PaymentListener {
     public void paymentTopicListener(OrderCreatedEvent event) {
         try {
             log.info("PaymentListener.paymentTopicListener - Start");
-            boolean isAlreadyProcessed =  idempotencyService.isAlreadyProcessed(event.getOrderId(), PAYMENT_LISTENER_NAME);
+            boolean isAlreadyProcessed =  idempotencyService.isAlreadyProcessed(event.getEventId(), PAYMENT_LISTENER_NAME);
             if (isAlreadyProcessed) {
-                log.info("Event already processed by PaymentListener for orderId: {}", event.getOrderId());
+                log.info("Event already processed by PaymentListener for eventId: {}", event.getEventId());
                 return;
             }
 
             event.setStatus(PROCESSING.name());
             Order order = mapper.toOrder(event);
             orderRepository.save(order);
-
-            idempotencyService.markAsProcessed(event.getOrderId(), PAYMENT_LISTENER_NAME, SUCCESS.name());
+            idempotencyService.markAsProcessed(event.getEventId(), PAYMENT_LISTENER_NAME, SUCCESS.name());
             log.info("PaymentListener.paymentTopicListener - END - status: {}", event.getStatus());
         } catch (Exception e) {
             log.error("Failed to listen to  OrderCreatedEvent: {}", e.getMessage(), e);
-            idempotencyService.markAsProcessed(event.getOrderId(), PAYMENT_LISTENER_NAME, FAILED.name());
+            idempotencyService.markAsProcessed(event.getEventId(), PAYMENT_LISTENER_NAME, FAILED.name());
             throw e;
         }
     }
@@ -52,21 +51,20 @@ public class PaymentListener {
     public void paymentFanoutListener(OrderCreatedEvent event) {
         try {
             log.info("PaymentListener.paymentFanoutListener - Start");
-            boolean isAlreadyProcessed =  idempotencyService.isAlreadyProcessed(event.getOrderId(), PAYMENT_FANOUT_LISTENER_NAME);
+            boolean isAlreadyProcessed =  idempotencyService.isAlreadyProcessed(event.getEventId(), PAYMENT_FANOUT_LISTENER_NAME);
             if (isAlreadyProcessed) {
-                log.info("Event already processed by PaymentFanoutListener for orderId: {}", event.getOrderId());
+                log.info("Event already processed by PaymentFanoutListener for eventId: {}", event.getEventId());
                 return;
             }
 
             event.setStatus(PROCESSING.name());
             Order order = mapper.toOrder(event);
             orderRepository.save(order);
-
-            idempotencyService.markAsProcessed(event.getOrderId(), PAYMENT_FANOUT_LISTENER_NAME, SUCCESS.name());
+            idempotencyService.markAsProcessed(event.getEventId(), PAYMENT_FANOUT_LISTENER_NAME, SUCCESS.name());
             log.info("PaymentListener.paymentFanoutListener - END - status: {}", event.getStatus());
         } catch (Exception e) {
             log.error("Failed to listen to  OrderCreatedEvent: {}", e.getMessage(), e);
-            idempotencyService.markAsProcessed(event.getOrderId(), PAYMENT_FANOUT_LISTENER_NAME, FAILED.name());
+            idempotencyService.markAsProcessed(event.getEventId(), PAYMENT_FANOUT_LISTENER_NAME, FAILED.name());
             throw e;
         }
     }

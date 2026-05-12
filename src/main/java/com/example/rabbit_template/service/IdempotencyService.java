@@ -1,68 +1,59 @@
 package com.example.rabbit_template.service;
 
-import com.example.rabbit_template.domain.Order;
-import com.example.rabbit_template.repository.OrderRepository;
+import com.example.rabbit_template.domain.ProcessedEvent;
+import com.example.rabbit_template.repository.ProcessedEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
-
-import static com.example.rabbit_template.constants.Status.*;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class IdempotencyService {
 
-    private final OrderRepository orderRepository;
+    private final ProcessedEventRepository processedEventRepository;
 
-    public boolean isAlreadyProcessed(UUID id, String listenerName) {
+    // Verifica se um evento já foi processado por um listener específico
+    // Retorna true se encontrar registro de processamento (sucesso ou falha)
+    // Retorna false se for a primeira vez que o listener processa este evento
+    public boolean isAlreadyProcessed(UUID eventId, String listenerName) {
         try {
-            Optional<Order> order = orderRepository.findById(id);
+            Optional<ProcessedEvent> processedEvent = processedEventRepository
+                .findByEventIdAndListenerName(eventId, listenerName);
 
-            if (order.isEmpty()) {
-                log.info("Order not found in database: {}", id);
-                return false;
+            if (processedEvent.isPresent()) {
+                log.info("Event already processed by {}: {} with status: {}",
+                    listenerName, eventId, processedEvent.get().getStatus());
+                return true;
             }
 
-            Order existingOrder = order.get();
-            boolean isProcessed = !existingOrder.getStatus().equals(CREATED.name());
-
-            if (isProcessed) {
-                log.info("Order already processed by {}: {} with status: {}",
-                    listenerName, id, existingOrder.getStatus());
-            }
-
-            return isProcessed;
+            return false;
         } catch (Exception e) {
             log.error("Error checking if event is already processed: {}", e.getMessage(), e);
             return false;
         }
     }
 
-    public void markAsProcessed(UUID id, String listenerName, String status) {
+    // Registra que um evento foi processado por um listener
+    // Cria um novo registro em processed_events com eventId, listenerName e status
+    // Permite rastreamento granular: cada listener tem seu próprio registro
+    public void markAsProcessed(UUID eventId, String listenerName, String status) {
         try {
-            Optional<Order> order = orderRepository.findById(id);
+            ProcessedEvent processedEvent = ProcessedEvent.builder()
+                .eventId(eventId)
+                .listenerName(listenerName)
+                .processedAt(LocalDateTime.now())
+                .status(status)
+                .build();
 
-            if (order.isEmpty()) {
-                log.warn("Order not found to mark as processed: {}", id);
-                return;
-            }
+            processedEventRepository.save(processedEvent);
 
-            Order existingOrder = order.get();
-
-            if (SUCCESS.name().equals(status)) {
-                existingOrder.setStatus(COMPLETED.name());
-            } else if (FAILED.name().equals(status)) {
-                existingOrder.setStatus(FAILED.name());
-            }
-
-            orderRepository.save(existingOrder);
-
-            log.info("Order marked as processed by {}: {} with status: {}",
-                listenerName, id, existingOrder.getStatus());
+            log.info("Event marked as processed by {}: {} with status: {}",
+                listenerName, eventId, status);
         } catch (Exception e) {
             log.error("Error marking event as processed: {}", e.getMessage(), e);
             throw e;
