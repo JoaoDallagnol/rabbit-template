@@ -94,4 +94,108 @@ public class RabbitMQConfig {
                 .bind(notificationQueue())
                 .to(createOrderFanoutExchange());
     }
+
+    // ------------------ RETRY ------------------
+    // TopicExchange de retry para o fluxo de Topic (Payment Topic)
+    // Armazena mensagens que falharam e aguarda o delay configurado antes de reprocessar
+    // Usa Forma 1: deadLetterExchange aponta para a exchange original (ORDER_CREATE_EXCHANGE)
+    // Quando a mensagem é reprocessada, volta para a fila principal
+    @Bean
+    TopicExchange createOrderRetryExchange() {
+        return new TopicExchange(ORDER_CREATE_RETRY_EXCHANGE);
+    }
+
+    // FanoutExchange de retry para o fluxo de Fanout (Payment Fanout e Notification)
+    // Quando a mensagem é reprocessada, volta para as filas principais (Payment Fanout e Notification)
+    @Bean
+    FanoutExchange createOrderFanoutRetryExchange() {
+        return new FanoutExchange(ORDER_CREATE_FANOUT_RETRY_EXCHANGE);
+    }
+
+    // Fila de retry para Payment (Topic): armazena mensagens que falharam na fila principal
+    // deadLetterExchange aponta para ORDER_CREATE_EXCHANGE (exchange original)
+    // deadLetterRoutingKey especifica o routing key para reprocessamento (Forma 1)
+    // Após o delay, a mensagem volta para a fila principal via exchange original
+    @Bean
+    Queue paymentRetryQueue () {
+        return QueueBuilder.durable(PAYMENT_RETRY_QUEUE)
+                .deadLetterExchange(ORDER_CREATE_EXCHANGE)
+                .deadLetterRoutingKey(ORDER_CREATE_KEY)
+                .build();
+    }
+
+    // Fila de retry para Payment (Fanout): armazena mensagens que falharam na fila principal
+    // deadLetterExchange aponta para ORDER_CREATE_FANOUT_EXCHANGE (exchange original)
+    // Sem deadLetterRoutingKey pois é fanout e não precisa de routing key (Forma 1)
+    // Após o delay, a mensagem volta para a fila principal via exchange original
+    @Bean
+    Queue paymentFanoutRetryQueue() {
+        return QueueBuilder.durable(PAYMENT_FANOUT_RETRY_QUEUE)
+                .deadLetterExchange(ORDER_CREATE_FANOUT_EXCHANGE)
+                .build();
+    }
+
+    // Binding da fila de retry do Payment (Topic) com a retry exchange (TopicExchange)
+    // Com .with(ORDER_CREATE_KEY) pois é topic e precisa de routing key
+    // Mensagens que falham na fila principal são enviadas para esta fila de retry
+    @Bean
+    Binding paymentRetryBinding() {
+        return BindingBuilder
+                .bind(paymentRetryQueue())
+                .to(createOrderRetryExchange())
+                .with(ORDER_CREATE_KEY);
+    }
+
+    // Binding da fila de retry do Payment (Fanout) com a retry exchange (FanoutExchange)
+    // Sem .with() pois é fanout e não precisa de routing key
+    // Mensagens que falham na fila principal são enviadas para esta fila de retry
+    @Bean
+    Binding paymentFanoutRetryBinding() {
+        return BindingBuilder
+                .bind(paymentFanoutRetryQueue())
+                .to(createOrderFanoutRetryExchange());
+    }
+
+    @Bean
+    Queue notificationRetryQueue() {
+        return QueueBuilder.durable(NOTIFICATION_RETRY_QUEUE)
+                .deadLetterExchange(NOTIFICATION_DLQ_EXCHANGE)
+                .build();
+    }
+
+    @Bean
+    Binding notificationRetryBinding() {
+        return BindingBuilder
+                .bind(notificationRetryQueue())
+                .to(createOrderFanoutRetryExchange());
+    }
+
+    // --------------- Dead Letter Queue (DLQ) para Notification ------------
+    // DLQ é uma exchange específica que recebe mensagens que falharam após todos os retries
+    // Diferente do Payment que usa Forma 1 (retry volta para exchange original)
+    // Notification usa Forma 2 (retry vai para DLQ específica para armazenamento permanente)
+
+    // FanoutExchange específica para DLQ: recebe mensagens que falharam permanentemente
+    @Bean
+    FanoutExchange createNotificationDLQExchange() {
+        return new FanoutExchange(NOTIFICATION_DLQ_EXCHANGE);
+    }
+
+    // Fila de DLQ: armazena mensagens que falharam após todos os retries
+    // Estas mensagens não serão reprocessadas automaticamente, apenas armazenadas para análise
+    @Bean
+    Queue notificationDLQQueue() {
+        return QueueBuilder.durable(NOTIFICATION_DLQ_QUEUE).build();
+    }
+
+    // Binding da fila de DLQ com a DLQ exchange (FanoutExchange)
+    // Sem .with() pois é fanout e não precisa de routing key
+    // Mensagens que chegam aqui já falharam e precisam de intervenção manual
+    @Bean
+    Binding notificationDLQBinding() {
+        return BindingBuilder
+                .bind(notificationDLQQueue())
+                .to(createNotificationDLQExchange());
+    }
+
 }

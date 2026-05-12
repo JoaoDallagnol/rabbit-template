@@ -24,5 +24,8 @@ spring:
       simple:
         acknowledge-mode: auto
         retry:
-          enabled: true
-          max-attempts: 3
+          enabled: true  #ativa o retry
+          max-attempts: 3  #tenta 3x
+          initial-interval: 1000  #primeira tentativa aguarda 1s
+          multiplier: 2.0  #cada tentativa dobra o tempo
+          max-interval: 10000  #tempo maximo de espera é 10s
