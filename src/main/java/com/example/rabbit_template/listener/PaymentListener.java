@@ -5,6 +5,7 @@ import com.example.rabbit_template.event.OrderCreatedEvent;
 import com.example.rabbit_template.mapper.OrderMapper;
 import com.example.rabbit_template.repository.OrderRepository;
 import com.example.rabbit_template.service.IdempotencyService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -26,6 +27,7 @@ public class PaymentListener {
     // queues = PAYMENT_QUEUE especifica qual fila este listener consome
     // O metodo será chamado automaticamente quando uma mensagem chegar na fila
     @RabbitListener(queues = PAYMENT_QUEUE)
+    @Transactional
     public void paymentTopicListener(OrderCreatedEvent event) {
         try {
             log.info("PaymentListener.paymentTopicListener - Start");
@@ -48,6 +50,7 @@ public class PaymentListener {
     }
 
     @RabbitListener(queues = PAYMENT_FANOUT_QUEUE)
+    @Transactional
     public void paymentFanoutListener(OrderCreatedEvent event) {
         try {
             log.info("PaymentListener.paymentFanoutListener - Start");

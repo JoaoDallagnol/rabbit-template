@@ -34,7 +34,7 @@ public class IdempotencyService {
             return false;
         } catch (Exception e) {
             log.error("Error checking if event is already processed: {}", e.getMessage(), e);
-            return false;
+            throw e;
         }
     }
 

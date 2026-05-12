@@ -2,6 +2,7 @@ package com.example.rabbit_template.listener;
 
 import com.example.rabbit_template.event.OrderCreatedEvent;
 import com.example.rabbit_template.service.IdempotencyService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -18,6 +19,7 @@ public class NotificationListener {
     private final IdempotencyService idempotencyService;
 
     @RabbitListener(queues = NOTIFICATION_QUEUE)
+    @Transactional
     public void notificationListener(OrderCreatedEvent event) {
         try {
             log.info("NotificationListener.notificationListener - Start");
@@ -38,6 +40,7 @@ public class NotificationListener {
     }
 
     @RabbitListener(queues = NOTIFICATION_DLQ_QUEUE)
+    @Transactional
     public void notificationDLQListener(OrderCreatedEvent event) {
         try {
             log.info("NotificationListener.notificationDLQListener - Start");

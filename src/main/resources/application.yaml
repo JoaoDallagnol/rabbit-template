@@ -12,7 +12,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
     database-platform: org.hibernate.dialect.H2Dialect
   rabbitmq:
     host: localhost
@@ -20,6 +23,13 @@ spring:
     username: admin
     password: admin123
     virtual-host: /
+    connection-timeout: 10000  #timeout para conectar ao RabbitMQ (10s)
+    requested-heartbeat: 30  #heartbeat para manter conexão viva (30s)
+    cache:
+      channel:
+        size: 10  #tamanho do pool de canais
+      connection:
+        size: 10  #tamanho do pool de conexões
     listener:
       simple:
         acknowledge-mode: auto
@@ -29,3 +39,8 @@ spring:
           initial-interval: 1000  #primeira tentativa aguarda 1s
           multiplier: 2.0  #cada tentativa dobra o tempo
           max-interval: 10000  #tempo maximo de espera é 10s
+
+logging:
+  level:
+    org.hibernate.SQL: OFF
+    org.hibernate.type.descriptor.sql.BasicBinder: OFF
