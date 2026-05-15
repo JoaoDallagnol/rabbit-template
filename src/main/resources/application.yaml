@@ -23,22 +23,22 @@ spring:
     username: admin
     password: admin123
     virtual-host: /
-    connection-timeout: 10000  #timeout para conectar ao RabbitMQ (10s)
-    requested-heartbeat: 30  #heartbeat para manter conexão viva (30s)
+    connection-timeout: 10000  # timeout to connect to RabbitMQ (10s)
+    requested-heartbeat: 30  # heartbeat to keep connection alive (30s)
     cache:
       channel:
-        size: 10  #tamanho do pool de canais
+        size: 10  # size of the channel pool
       connection:
-        size: 10  #tamanho do pool de conexões
+        size: 10  # size of the connection pool
     listener:
       simple:
         acknowledge-mode: auto
         retry:
-          enabled: true  #ativa o retry
-          max-attempts: 3  #tenta 3x
-          initial-interval: 1000  #primeira tentativa aguarda 1s
-          multiplier: 2.0  #cada tentativa dobra o tempo
-          max-interval: 10000  #tempo maximo de espera é 10s
+          enabled: true  # enables retry
+          max-attempts: 3  # tries 3 times
+          initial-interval: 1000  # first attempt waits 1s
+          multiplier: 2.0  # each attempt doubles the time
+          max-interval: 10000  # maximum wait time is 10s
 
 logging:
   level:

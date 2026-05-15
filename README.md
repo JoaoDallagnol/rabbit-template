@@ -1,125 +1,125 @@
 # 🐰 Rabbit Template - RabbitMQ Event-Driven Architecture
 
-Um projeto educacional que demonstra os principais padrões de integração com **RabbitMQ**, incluindo Topic Exchange, Fanout Exchange, Retry com Exponential Backoff, Dead Letter Queue (DLQ) e Idempotência.
+An educational project that demonstrates the main patterns of integration with **RabbitMQ**, including Topic Exchange, Fanout Exchange, Retry with Exponential Backoff, Dead Letter Queue (DLQ) and Idempotency.
 
-## 📋 Índice
+## 📋 Table of Contents
 
-- [O que é este projeto?](#o-que-é-este-projeto)
-- [Arquitetura](#arquitetura)
-- [Pré-requisitos](#pré-requisitos)
-- [Como Rodar](#como-rodar)
-- [Endpoints da API](#endpoints-da-api)
-- [Fluxos de Processamento](#fluxos-de-processamento)
-- [Estrutura do Projeto](#estrutura-do-projeto)
-- [Tecnologias](#tecnologias)
-
----
-
-## 🎯 O que é este projeto?
-
-Este é um **projeto de estudos** que implementa um sistema de processamento de pedidos com diferentes cenários de integração RabbitMQ:
-
-### **Cenários Implementados:**
-
-1. **Topic Exchange** - Roteamento seletivo baseado em routing keys
-2. **Fanout Exchange** - Broadcast para múltiplos listeners
-3. **Retry com Exponential Backoff** - Tentativas automáticas com delay crescente
-4. **Dead Letter Queue (DLQ)** - Armazenamento de mensagens que falharam
-5. **Idempotência** - Prevenção de processamento duplicado
-
-### **Caso de Uso:**
-
-Um cliente cria um pedido via API. O sistema publica um evento que é consumido por diferentes serviços (pagamento, notificação, etc.) de forma assíncrona. Se algo falhar, o sistema tenta novamente automaticamente. Se falhar definitivamente, a mensagem vai para uma fila de mensagens mortas para análise.
+- [What is this project?](#what-is-this-project)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [How to Run](#how-to-run)
+- [API Endpoints](#api-endpoints)
+- [Processing Flows](#processing-flows)
+- [Project Structure](#project-structure)
+- [Technologies](#technologies)
 
 ---
 
-## 🏗️ Arquitetura
+## 🎯 What is this project?
 
-### **Fluxo Topic Exchange (Roteamento Seletivo)**
+This is an **educational project** that implements an order processing system with different RabbitMQ integration scenarios:
+
+### **Implemented Scenarios:**
+
+1. **Topic Exchange** - Selective routing based on routing keys
+2. **Fanout Exchange** - Broadcast to multiple listeners
+3. **Retry with Exponential Backoff** - Automatic retries with increasing delay
+4. **Dead Letter Queue (DLQ)** - Storage of messages that failed
+5. **Idempotency** - Prevention of duplicate processing
+
+### **Use Case:**
+
+A customer creates an order via API. The system publishes an event that is consumed by different services (payment, notification, etc.) asynchronously. If something fails, the system automatically retries. If it fails permanently, the message goes to a dead letter queue for analysis.
+
+---
+
+## 🏗️ Architecture
+
+### **Topic Exchange Flow (Selective Routing)**
 
 ```
 POST /orders/topic
     ↓
 OrderService.createOrderTopic()
     ↓
-Salva Order no banco
+Saves Order to database
     ↓
-Publica OrderCreatedEvent
+Publishes OrderCreatedEvent
     ↓
 orders.exchange (routing key: "orders.created")
     ↓
 payment.queue.topic
     ↓
-PaymentListener (processa pagamento)
+PaymentListener (processes payment)
     ↓
-IdempotencyService (evita duplicação)
+IdempotencyService (prevents duplication)
     ↓
-ACK (confirma consumo)
+ACK (confirms consumption)
 ```
 
-### **Fluxo Fanout Exchange (Broadcast)**
+### **Fanout Exchange Flow (Broadcast)**
 
 ```
 POST /orders/fanout
     ↓
 OrderService.createOrderFanout()
     ↓
-Salva Order no banco
+Saves Order to database
     ↓
-Publica OrderCreatedEvent
+Publishes OrderCreatedEvent
     ↓
-orders.fanout.exchange (sem routing key)
+orders.fanout.exchange (no routing key)
     ↓
 ├─ payment.queue.fanout → PaymentListener
 └─ notification.queue.fanout → NotificationListener
     ↓
-Ambos processam em paralelo
+Both process in parallel
     ↓
-IdempotencyService (cada listener tem seu registro)
+IdempotencyService (each listener has its own record)
     ↓
-ACK (confirma consumo)
+ACK (confirms consumption)
 ```
 
-### **Fluxo de Retry e DLQ**
+### **Retry and DLQ Flow**
 
 ```
-Listener processa mensagem
+Listener processes message
     ↓
-❌ Falha
+❌ Fails
     ↓
-Aguarda 1s (delay inicial)
+Waits 1s (initial delay)
     ↓
-Tenta novamente (Retry 1)
+Tries again (Retry 1)
     ↓
-❌ Falha novamente
+❌ Fails again
     ↓
-Aguarda 2s (exponential backoff)
+Waits 2s (exponential backoff)
     ↓
-Tenta novamente (Retry 2)
+Tries again (Retry 2)
     ↓
-❌ Falha na 3ª tentativa
+❌ Fails on 3rd attempt
     ↓
-Vai para DLQ (Dead Letter Queue)
+Goes to DLQ (Dead Letter Queue)
     ↓
-DLQListener (registra erro para análise)
+DLQListener (logs error for analysis)
 ```
 
 ---
 
-## 📦 Pré-requisitos
+## 📦 Prerequisites
 
 - **Java 21+**
 - **Maven 3.8+**
-- **RabbitMQ 3.x** (com Management Plugin)
-- **Docker** (opcional, para rodar RabbitMQ)
+- **RabbitMQ 3.x** (with Management Plugin)
+- **Docker** (optional, to run RabbitMQ)
 
 ---
 
-## 🚀 Como Rodar
+## 🚀 How to Run
 
-### **1. Iniciar RabbitMQ com Docker**
+### **1. Start RabbitMQ with Docker**
 
-Use o docker-compose fornecido:
+Use the provided docker-compose:
 
 ```bash
 version: "3.8"
@@ -147,27 +147,27 @@ networks:
     driver: bridge
 ```
 
-**Salve como `docker-compose.yml` e execute:**
+**Save as `docker-compose.yml` and execute:**
 
 ```bash
 docker-compose up -d
 ```
 
-**Verificar se está rodando:**
+**Check if it's running:**
 
 ```bash
 docker ps | grep rabbitmq
 ```
 
-**Acessar Management Console:**
+**Access Management Console:**
 
 - URL: `http://localhost:15672`
-- Usuário: `admin`
-- Senha: `admin123`
+- Username: `admin`
+- Password: `admin123`
 
 ---
 
-### **2. Compilar o Projeto**
+### **2. Compile the Project**
 
 ```bash
 mvn clean install
@@ -175,19 +175,19 @@ mvn clean install
 
 ---
 
-### **3. Rodar a Aplicação**
+### **3. Run the Application**
 
 ```bash
 mvn spring-boot:run
 ```
 
-Ou execute a classe principal:
+Or execute the main class:
 
 ```bash
 java -jar target/rabbit-template-0.0.1-SNAPSHOT.jar
 ```
 
-**Verificar se está rodando:**
+**Check if it's running:**
 
 ```bash
 curl http://localhost:8080/orders
@@ -195,9 +195,9 @@ curl http://localhost:8080/orders
 
 ---
 
-## 📡 Endpoints da API
+## 📡 API Endpoints
 
-### **1. Criar Pedido via Topic Exchange**
+### **1. Create Order via Topic Exchange**
 
 ```bash
 POST http://localhost:8080/orders/topic
@@ -215,7 +215,7 @@ Content-Type: application/json
 }
 ```
 
-**Resposta (201 Created):**
+**Response (201 Created):**
 
 ```json
 {
@@ -229,7 +229,7 @@ Content-Type: application/json
 
 ---
 
-### **2. Criar Pedido via Fanout Exchange**
+### **2. Create Order via Fanout Exchange**
 
 ```bash
 POST http://localhost:8080/orders/fanout
@@ -247,7 +247,7 @@ Content-Type: application/json
 }
 ```
 
-**Resposta (201 Created):**
+**Response (201 Created):**
 
 ```json
 {
@@ -261,13 +261,13 @@ Content-Type: application/json
 
 ---
 
-### **3. Listar Todos os Pedidos**
+### **3. List All Orders**
 
 ```bash
 GET http://localhost:8080/orders
 ```
 
-**Resposta (200 OK):**
+**Response (200 OK):**
 
 ```json
 [
@@ -290,13 +290,13 @@ GET http://localhost:8080/orders
 
 ---
 
-### **4. Obter Pedido por ID**
+### **4. Get Order by ID**
 
 ```bash
 GET http://localhost:8080/orders/550e8400-e29b-41d4-a716-446655440000
 ```
 
-**Resposta (200 OK):**
+**Response (200 OK):**
 
 ```json
 {
@@ -310,34 +310,34 @@ GET http://localhost:8080/orders/550e8400-e29b-41d4-a716-446655440000
 
 ---
 
-## 🔄 Fluxos de Processamento
+## 🔄 Processing Flows
 
 ### **Topic Exchange - PaymentListener**
 
-1. Recebe evento via `payment.queue.topic`
-2. Verifica idempotência (já foi processado?)
-3. Se não: processa pagamento e marca como COMPLETED
-4. Se sim: ignora (evita duplicação)
-5. Se falhar: tenta novamente (retry com backoff)
-6. Se falhar 3x: vai para DLQ
+1. Receives event via `payment.queue.topic`
+2. Checks idempotency (already processed?)
+3. If not: processes payment and marks as COMPLETED
+4. If yes: ignores (prevents duplication)
+5. If fails: retries (retry with backoff)
+6. If fails 3x: goes to DLQ
 
 ### **Fanout Exchange - PaymentListener + NotificationListener**
 
-1. Ambos recebem o mesmo evento simultaneamente
-2. Cada um tem seu próprio registro de idempotência
-3. PaymentListener processa pagamento
-4. NotificationListener envia notificação
-5. Se um falhar, o outro continua (independentes)
-6. Cada um tem seu próprio retry e DLQ
+1. Both receive the same event simultaneously
+2. Each has its own idempotency record
+3. PaymentListener processes payment
+4. NotificationListener sends notification
+5. If one fails, the other continues (independent)
+6. Each has its own retry and DLQ
 
-### **Retry com Exponential Backoff**
+### **Retry with Exponential Backoff**
 
-- **Tentativa 1:** Aguarda 1 segundo
-- **Tentativa 2:** Aguarda 2 segundos
-- **Tentativa 3:** Aguarda 4 segundos
-- **Máximo:** 10 segundos
+- **Attempt 1:** Waits 1 second
+- **Attempt 2:** Waits 2 seconds
+- **Attempt 3:** Waits 4 seconds
+- **Maximum:** 10 seconds
 
-Configurado em `application.yaml`:
+Configured in `application.yaml`:
 
 ```yaml
 spring:
@@ -352,9 +352,9 @@ spring:
           max-interval: 10000
 ```
 
-### **Idempotência**
+### **Idempotency**
 
-Cada listener tem um registro em `processed_events`:
+Each listener has a record in `processed_events`:
 
 ```
 eventId: 550e8400-e29b-41d4-a716-446655440000
@@ -363,111 +363,111 @@ status: SUCCESS
 processedAt: 2026-05-12T15:30:05
 ```
 
-Se a mesma mensagem chegar 2x, o listener verifica este registro e ignora.
+If the same message arrives twice, the listener checks this record and ignores it.
 
 ---
 
-## 📁 Estrutura do Projeto
+## 📁 Project Structure
 
 ```
 src/main/java/com/example/rabbit_template/
 ├── config/
-│   └── RabbitMQConfig.java          # Configuração de exchanges, queues, bindings
+│   └── RabbitMQConfig.java          # Configuration of exchanges, queues, bindings
 ├── constants/
-│   ├── RabbitConstants.java         # Nomes de exchanges, queues, routing keys
-│   ├── EventType.java               # Tipos de eventos
-│   └── Status.java                  # Status de pedidos e processamento
+│   ├── RabbitConstants.java         # Names of exchanges, queues, routing keys
+│   ├── EventType.java               # Event types
+│   └── Status.java                  # Order and processing status
 ├── controller/
-│   └── OrderController.java         # Endpoints REST
+│   └── OrderController.java         # REST endpoints
 ├── domain/
-│   ├── Order.java                   # Entidade de pedido
-│   ├── OrderItem.java               # Itens do pedido
-│   └── ProcessedEvent.java          # Rastreamento de idempotência
+│   ├── Order.java                   # Order entity
+│   ├── OrderItem.java               # Order items
+│   └── ProcessedEvent.java          # Idempotency tracking
 ├── dto/
-│   ├── OrderRequest.java            # DTO de entrada
-│   ├── OrderResponse.java           # DTO de saída
-│   └── OrderItemRequest.java        # DTO de item
+│   ├── OrderRequest.java            # Input DTO
+│   ├── OrderResponse.java           # Output DTO
+│   └── OrderItemRequest.java        # Item DTO
 ├── event/
-│   └── OrderCreatedEvent.java       # Evento publicado no RabbitMQ
+│   └── OrderCreatedEvent.java       # Event published to RabbitMQ
 ├── exception/
-│   ├── GlobalExceptionHandler.java  # Tratamento de exceções
-│   └── OrderNotFoundException.java   # Exceção customizada
+│   ├── GlobalExceptionHandler.java  # Exception handling
+│   └── OrderNotFoundException.java   # Custom exception
 ├── listener/
-│   └── PaymentListener.java         # Consome eventos (Topic + Fanout)
-│   └── NotificationListener.java    # Consome eventos (Fanout + DLQ)
+│   └── PaymentListener.java         # Consumes events (Topic + Fanout)
+│   └── NotificationListener.java    # Consumes events (Fanout + DLQ)
 ├── mapper/
-│   └── OrderMapper.java             # Conversão entre entidades e DTOs
+│   └── OrderMapper.java             # Entity and DTO conversion
 ├── publisher/
-│   └── OrderCreatedEventPublisher.java  # Publica eventos no RabbitMQ
+│   └── OrderCreatedEventPublisher.java  # Publishes events to RabbitMQ
 ├── repository/
-│   ├── OrderRepository.java         # Acesso a dados de pedidos
-│   └── ProcessedEventRepository.java # Acesso a dados de idempotência
+│   ├── OrderRepository.java         # Order data access
+│   └── ProcessedEventRepository.java # Idempotency data access
 ├── scheduler/
-│   └── QueueHealthMonitor.java      # Monitora saúde das filas
+│   └── QueueHealthMonitor.java      # Monitors queue health
 ├── service/
-│   ├── OrderService.java            # Lógica de negócio
-│   └── IdempotencyService.java      # Gerencia idempotência
+│   ├── OrderService.java            # Business logic
+│   └── IdempotencyService.java      # Manages idempotency
 └── utils/
-    └── JsonUtils.java               # Utilitários de JSON
+    └── JsonUtils.java               # JSON utilities
 
 src/main/resources/
-└── application.yaml                 # Configurações da aplicação
+└── application.yaml                 # Application configuration
 ```
 
 ---
 
-## 🛠️ Tecnologias
+## 🛠️ Technologies
 
-| Tecnologia | Versão | Propósito |
-|-----------|--------|----------|
-| Java | 21+ | Linguagem |
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| Java | 21+ | Language |
 | Spring Boot | 3.x | Framework |
-| Spring AMQP | 3.x | Integração RabbitMQ |
+| Spring AMQP | 3.x | RabbitMQ Integration |
 | RabbitMQ | 3.x | Message Broker |
-| H2 Database | 2.x | Banco de dados em memória |
+| H2 Database | 2.x | In-memory database |
 | Hibernate | 7.x | ORM |
-| MapStruct | 1.x | Mapeamento de objetos |
-| Lombok | 1.x | Redução de boilerplate |
+| MapStruct | 1.x | Object mapping |
+| Lombok | 1.x | Boilerplate reduction |
 | Maven | 3.8+ | Build tool |
 
 ---
 
-## 📚 Conceitos Aprendidos
+## 📚 Concepts Learned
 
 ### **Topic Exchange**
-- Roteamento baseado em padrões de routing key
-- Ideal para diferentes tipos de eventos
-- Um listener por fila
+- Routing based on routing key patterns
+- Ideal for different types of events
+- One listener per queue
 
 ### **Fanout Exchange**
-- Broadcast para todos os listeners
-- Sem roteamento (todos recebem)
-- Múltiplos listeners processam em paralelo
+- Broadcast to all listeners
+- No routing (everyone receives)
+- Multiple listeners process in parallel
 
-### **Retry com Exponential Backoff**
-- Tentativas automáticas com delay crescente
-- Evita sobrecarregar o sistema
-- Configurável via `application.yaml`
+### **Retry with Exponential Backoff**
+- Automatic retries with increasing delay
+- Prevents system overload
+- Configurable via `application.yaml`
 
 ### **Dead Letter Queue (DLQ)**
-- Armazena mensagens que falharam permanentemente
-- Permite análise e reprocessamento manual
-- Forma 1: Retry volta para exchange original
-- Forma 2: Retry vai para DLQ específica
+- Stores messages that failed permanently
+- Allows analysis and manual reprocessing
+- Form 1: Retry goes back to original exchange
+- Form 2: Retry goes to specific DLQ
 
-### **Idempotência**
-- Cada listener tem seu próprio registro
-- Evita processamento duplicado
-- Suporta múltiplos listeners no Fanout
-- Permite reprocessamento seletivo
+### **Idempotency**
+- Each listener has its own record
+- Prevents duplicate processing
+- Supports multiple listeners in Fanout
+- Allows selective reprocessing
 
 ---
 
-## 🧪 Testando com Postman
+## 🧪 Testing with Postman
 
-Importe a collection fornecida: `rabbit-template.postman_collection.json`
+Import the provided collection: `rabbit-template.postman_collection.json`
 
-Ou use os comandos curl:
+Or use curl commands:
 
 ```bash
 # Topic
@@ -489,13 +489,48 @@ curl http://localhost:8080/orders/550e8400-e29b-41d4-a716-446655440000
 
 ---
 
-## 📊 Monitorando RabbitMQ
+## 📊 Monitoring RabbitMQ
 
-Acesse o Management Console: `http://localhost:15672`
+Access the Management Console: `http://localhost:15672`
 
-Você pode visualizar:
-- Exchanges criadas
-- Queues e suas mensagens
+You can view:
+- Created exchanges
+- Queues and their messages
 - Bindings
-- Conexões ativas
-- Taxa de mensagens
+- Active connections
+- Message rate
+
+---
+
+## 🎓 Next Steps
+
+To deepen your knowledge:
+
+1. Implement more listeners (Analytics, Audit, etc.)
+2. Add event persistence (Event Sourcing)
+3. Implement Circuit Breaker for failures
+4. Add metrics with Micrometer
+5. Implement integration tests
+6. Use Docker Compose for complete environment
+
+---
+
+## 📝 License
+
+This project is provided as educational material.
+
+---
+
+## 👨‍💻 Author
+
+Educational project to learn RabbitMQ and event-driven architecture.
+
+---
+
+## 🤝 Contributions
+
+Feel free to fork, study and improve this project!
+
+---
+
+**Last updated:** May 2026

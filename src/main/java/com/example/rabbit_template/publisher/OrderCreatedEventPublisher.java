@@ -14,20 +14,16 @@ import static com.example.rabbit_template.utils.JsonUtils.parseObjectToJson;
 @RequiredArgsConstructor
 public class OrderCreatedEventPublisher {
 
-    // RabbitTemplate é a classe do Spring AMQP que fornece métodos para enviar mensagens ao RabbitMQ
+    // RabbitTemplate is the Spring AMQP class that provides methods to send messages to RabbitMQ
     private final RabbitTemplate rabbitTemplate;
 
-    // Metodo responsável por publicar um evento OrderCreatedEvent no RabbitMQ
-    // Recebe um OrderCreatedEvent como parâmetro
+    // Method responsible for publishing an OrderCreatedEvent to RabbitMQ
+    // Receives an OrderCreatedEvent as a parameter
     public void publish(OrderCreatedEvent event) {
         try {
-            // parseObjectToJson() converte o objeto OrderCreatedEvent em uma String JSON
-            //String payloadToSend = parseObjectToJson(event);
-
-            // convertAndSend() é o metodo principal do RabbitTemplate para enviar mensagens
-            // payloadToSend - o conteúdo da mensagem em formato JSON
-            // A exchange receberá a mensagem e a roteará para filas baseado no routing key
-            // Como configuramos o MessageConverter no RabbitTemplate, o content-type será application/json
+            // convertAndSend() is the main RabbitTemplate method to send messages
+            // The exchange will receive the message and route it to queues based on the routing key
+            // Since we configured the MessageConverter in RabbitTemplate, the content-type will be application/json
             this.rabbitTemplate.convertAndSend(ORDER_CREATE_EXCHANGE, ORDER_CREATE_KEY, event);
 
             log.info("OrderCreatedEventPublisher.publish - END - eventId: {}", event.getEventId());

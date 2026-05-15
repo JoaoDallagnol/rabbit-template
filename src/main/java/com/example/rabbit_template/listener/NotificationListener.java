@@ -23,6 +23,7 @@ public class NotificationListener {
     public void notificationListener(OrderCreatedEvent event) {
         try {
             log.info("NotificationListener.notificationListener - Start");
+            // Checks if this listener has already processed this event (idempotency per listener)
             boolean isAlreadyProcessed = idempotencyService.isAlreadyProcessed(event.getEventId(), NOTIFICATION_LISTENER_NAME);
             if (isAlreadyProcessed) {
                 log.info("Event already processed by NotificationListener for eventId: {}", event.getEventId());
@@ -30,10 +31,12 @@ public class NotificationListener {
             }
 
             log.info("NotificationListener.notificationListener - Processing notification for eventId: {}", event.getEventId());
+            // Marks the event as successfully processed by this listener
             idempotencyService.markAsProcessed(event.getEventId(), NOTIFICATION_LISTENER_NAME, SUCCESS.name());
             log.info("NotificationListener.notificationListener - END - eventId: {}", event.getEventId());
         } catch (Exception e) {
             log.error("Failed to listen to OrderCreatedEvent: {}", e.getMessage(), e);
+            // Marks the event as failed by this listener
             idempotencyService.markAsProcessed(event.getEventId(), NOTIFICATION_LISTENER_NAME, FAILED.name());
             throw e;
         }
@@ -44,6 +47,7 @@ public class NotificationListener {
     public void notificationDLQListener(OrderCreatedEvent event) {
         try {
             log.info("NotificationListener.notificationDLQListener - Start");
+            // Checks if this listener has already processed this event (idempotency per listener)
             boolean isAlreadyProcessed = idempotencyService.isAlreadyProcessed(event.getEventId(), NOTIFICATION_DLQ_LISTENER_NAME);
             if (isAlreadyProcessed) {
                 log.info("Event already processed by NotificationDLQListener for eventId: {}", event.getEventId());
@@ -51,11 +55,12 @@ public class NotificationListener {
             }
 
             log.info("NotificationListener.notificationDLQListener - Processing notification for eventId: {}", event.getEventId());
-            // Marca o evento como processado com falha por este listener (DLQ sempre é falha)
+            // Marks the event as failed by this listener (DLQ is always a failure)
             idempotencyService.markAsProcessed(event.getEventId(), NOTIFICATION_DLQ_LISTENER_NAME, FAILED.name());
             log.info("NotificationListener.notificationDLQListener - END - eventId: {}", event.getEventId());
         } catch (Exception e) {
             log.error("Failed to listen to OrderCreatedEvent: {}", e.getMessage(), e);
+            // Marks the event as failed by this listener
             idempotencyService.markAsProcessed(event.getEventId(), NOTIFICATION_DLQ_LISTENER_NAME, FAILED.name());
             throw e;
         }

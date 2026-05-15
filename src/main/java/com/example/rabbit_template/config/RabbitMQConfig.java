@@ -14,26 +14,26 @@ import static com.example.rabbit_template.constants.RabbitConstants.*;
 @Configuration
 public class RabbitMQConfig {
     
-    // @Bean cria um bean gerenciado pelo Spring que será injetado onde necessário
-    // TopicExchange é um tipo de exchange do RabbitMQ que roteia mensagens baseado em routing keys
-    // O nome "orders.exchange" é o identificador único da exchange no RabbitMQ
+    // @Bean creates a Spring-managed bean that will be injected where needed
+    // TopicExchange is a RabbitMQ exchange type that routes messages based on routing keys
+    // The name "orders.exchange" is the unique identifier of the exchange in RabbitMQ
     @Bean
     TopicExchange createOrderExchange() {
-        // Cria e retorna uma nova TopicExchange com o nome definido em RabbitConstants
-        // Esta exchange será responsável por rotear mensagens OrderCreatedEvent
+        // Creates and returns a new TopicExchange with the name defined in RabbitConstants
+        // This exchange will be responsible for routing OrderCreatedEvent messages
         return new TopicExchange(ORDER_CREATE_EXCHANGE);
     }
 
-    // Queue é uma fila do RabbitMQ que armazena mensagens até serem consumidas
-    // QueueBuilder.durable() cria uma fila durável (persiste mesmo se RabbitMQ reiniciar)
+    // Queue is a RabbitMQ queue that stores messages until they are consumed
+    // QueueBuilder.durable() creates a durable queue (persists even if RabbitMQ restarts)
     @Bean
     Queue paymentQueue() {
-        // Esta fila receberá mensagens roteadas pela exchange baseado no routing key
+        // This queue will receive messages routed by the exchange based on the routing key
         return QueueBuilder.durable(PAYMENT_QUEUE).build();
     }
 
-    // Binding vincula uma Queue a uma Exchange com um routing key específico
-    // Define qual fila recebe mensagens de qual exchange com qual routing key
+    // Binding links a Queue to an Exchange with a specific routing key
+    // Defines which queue receives messages from which exchange with which routing key
     @Bean
     Binding paymentBinding() {
         return BindingBuilder
@@ -42,29 +42,29 @@ public class RabbitMQConfig {
                 .with(ORDER_CREATE_KEY);
     }
 
-    // Cria um MessageConverter que usa Jackson para converter JSON
-    // Este converter será usado tanto para enviar quanto para receber mensagens
+    // Creates a MessageConverter that uses Jackson to convert JSON
+    // This converter will be used for both sending and receiving messages
     @Bean
     public MessageConverter converter() {
         return new JacksonJsonMessageConverter();
     }
 
-    // Configura o RabbitTemplate para usar o JacksonJsonMessageConverter
-    // RabbitTemplate é responsável por enviar mensagens ao RabbitMQ
-    // Sem esta configuração, o converter não seria utilizado
+    // Configures the RabbitTemplate to use the JacksonJsonMessageConverter
+    // RabbitTemplate is responsible for sending messages to RabbitMQ
+    // Without this configuration, the converter would not be used
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
-        // Cria uma nova instância de RabbitTemplate com a conexão do RabbitMQ
+        // Creates a new RabbitTemplate instance with the RabbitMQ connection
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        // Define o MessageConverter para serializar/desserializar mensagens em JSON
+        // Sets the MessageConverter to serialize/deserialize messages as JSON
         rabbitTemplate.setMessageConverter(converter());
-        // Retorna o RabbitTemplate configurado
+        // Returns the configured RabbitTemplate
         return rabbitTemplate;
     }
 
 
-    // --------------- FANOUT -------------
-    // Mesma logica mas utilizando o FanoutExchange pois é do contexto de fanout
+    // --------------- FANOUT EXCHANGE ---------------
+    // Same logic but using FanoutExchange for the fanout context
     @Bean
     FanoutExchange createOrderFanoutExchange() {
         return new FanoutExchange(ORDER_CREATE_FANOUT_EXCHANGE);
@@ -81,7 +81,7 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(NOTIFICATION_QUEUE).build();
     }
 
-    // Binding de fanout nao precisa de .with() pois nesse contexto n temos routing key
+    // Fanout binding does not need .with() because in this context we don't have a routing key
     @Bean
     Binding paymentFanoutBinding() {
         return BindingBuilder
@@ -96,27 +96,27 @@ public class RabbitMQConfig {
                 .to(createOrderFanoutExchange());
     }
 
-    // ------------------ RETRY ------------------
-    // TopicExchange de retry para o fluxo de Topic (Payment Topic)
-    // Armazena mensagens que falharam e aguarda o delay configurado antes de reprocessar
-    // Usa Forma 1: deadLetterExchange aponta para a exchange original (ORDER_CREATE_EXCHANGE)
-    // Quando a mensagem é reprocessada, volta para a fila principal
+    // ------------------- RETRY MECHANISM -------------------
+    // TopicExchange for retry in the Topic flow (Payment Topic)
+    // Stores messages that failed and waits for the configured delay before reprocessing
+    // Uses Form 1: deadLetterExchange points to the original exchange (ORDER_CREATE_EXCHANGE)
+    // When the message is reprocessed, it goes back to the main queue
     @Bean
     TopicExchange createOrderRetryExchange() {
         return new TopicExchange(ORDER_CREATE_RETRY_EXCHANGE);
     }
 
-    // FanoutExchange de retry para o fluxo de Fanout (Payment Fanout e Notification)
-    // Quando a mensagem é reprocessada, volta para as filas principais (Payment Fanout e Notification)
+    // FanoutExchange for retry in the Fanout flow (Payment Fanout and Notification)
+    // When the message is reprocessed, it goes back to the main queues (Payment Fanout and Notification)
     @Bean
     FanoutExchange createOrderFanoutRetryExchange() {
         return new FanoutExchange(ORDER_CREATE_FANOUT_RETRY_EXCHANGE);
     }
 
-    // Fila de retry para Payment (Topic): armazena mensagens que falharam na fila principal
-    // deadLetterExchange aponta para ORDER_CREATE_EXCHANGE (exchange original)
-    // deadLetterRoutingKey especifica o routing key para reprocessamento (Forma 1)
-    // Após o delay, a mensagem volta para a fila principal via exchange original
+    // Retry queue for Payment (Topic): stores messages that failed in the main queue
+    // deadLetterExchange points to ORDER_CREATE_EXCHANGE (original exchange)
+    // deadLetterRoutingKey specifies the routing key for reprocessing (Form 1)
+    // After the delay, the message goes back to the main queue via the original exchange
     @Bean
     Queue paymentRetryQueue () {
         return QueueBuilder.durable(PAYMENT_RETRY_QUEUE)
@@ -125,10 +125,10 @@ public class RabbitMQConfig {
                 .build();
     }
 
-    // Fila de retry para Payment (Fanout): armazena mensagens que falharam na fila principal
-    // deadLetterExchange aponta para ORDER_CREATE_FANOUT_EXCHANGE (exchange original)
-    // Sem deadLetterRoutingKey pois é fanout e não precisa de routing key (Forma 1)
-    // Após o delay, a mensagem volta para a fila principal via exchange original
+    // Retry queue for Payment (Fanout): stores messages that failed in the main queue
+    // deadLetterExchange points to ORDER_CREATE_FANOUT_EXCHANGE (original exchange)
+    // No deadLetterRoutingKey because it's fanout and doesn't need a routing key (Form 1)
+    // After the delay, the message goes back to the main queue via the original exchange
     @Bean
     Queue paymentFanoutRetryQueue() {
         return QueueBuilder.durable(PAYMENT_FANOUT_RETRY_QUEUE)
@@ -136,9 +136,9 @@ public class RabbitMQConfig {
                 .build();
     }
 
-    // Binding da fila de retry do Payment (Topic) com a retry exchange (TopicExchange)
-    // Com .with(ORDER_CREATE_KEY) pois é topic e precisa de routing key
-    // Mensagens que falham na fila principal são enviadas para esta fila de retry
+    // Binding of the Payment retry queue (Topic) with the retry exchange (TopicExchange)
+    // With .with(ORDER_CREATE_KEY) because it's topic and needs a routing key
+    // Messages that fail in the main queue are sent to this retry queue
     @Bean
     Binding paymentRetryBinding() {
         return BindingBuilder
@@ -147,9 +147,9 @@ public class RabbitMQConfig {
                 .with(ORDER_CREATE_KEY);
     }
 
-    // Binding da fila de retry do Payment (Fanout) com a retry exchange (FanoutExchange)
-    // Sem .with() pois é fanout e não precisa de routing key
-    // Mensagens que falham na fila principal são enviadas para esta fila de retry
+    // Binding of the Payment retry queue (Fanout) with the retry exchange (FanoutExchange)
+    // Without .with() because it's fanout and doesn't need a routing key
+    // Messages that fail in the main queue are sent to this retry queue
     @Bean
     Binding paymentFanoutRetryBinding() {
         return BindingBuilder
@@ -171,27 +171,27 @@ public class RabbitMQConfig {
                 .to(createOrderFanoutRetryExchange());
     }
 
-    // --------------- Dead Letter Queue (DLQ) para Notification ------------
-    // DLQ é uma exchange específica que recebe mensagens que falharam após todos os retries
-    // Diferente do Payment que usa Forma 1 (retry volta para exchange original)
-    // Notification usa Forma 2 (retry vai para DLQ específica para armazenamento permanente)
+    // ------------------- DEAD LETTER QUEUE (DLQ) FOR NOTIFICATION -------------------
+    // DLQ is a specific exchange that receives messages that failed after all retries
+    // Different from Payment which uses Form 1 (retry goes back to original exchange)
+    // Notification uses Form 2 (retry goes to specific DLQ for permanent storage)
 
-    // FanoutExchange específica para DLQ: recebe mensagens que falharam permanentemente
+    // Specific FanoutExchange for DLQ: receives messages that failed permanently
     @Bean
     FanoutExchange createNotificationDLQExchange() {
         return new FanoutExchange(NOTIFICATION_DLQ_EXCHANGE);
     }
 
-    // Fila de DLQ: armazena mensagens que falharam após todos os retries
-    // Estas mensagens não serão reprocessadas automaticamente, apenas armazenadas para análise
+    // DLQ queue: stores messages that failed after all retries
+    // These messages will not be reprocessed automatically, only stored for analysis
     @Bean
     Queue notificationDLQQueue() {
         return QueueBuilder.durable(NOTIFICATION_DLQ_QUEUE).build();
     }
 
-    // Binding da fila de DLQ com a DLQ exchange (FanoutExchange)
-    // Sem .with() pois é fanout e não precisa de routing key
-    // Mensagens que chegam aqui já falharam e precisam de intervenção manual
+    // Binding of the DLQ queue with the DLQ exchange (FanoutExchange)
+    // Without .with() because it's fanout and doesn't need a routing key
+    // Messages that arrive here have already failed and need manual intervention
     @Bean
     Binding notificationDLQBinding() {
         return BindingBuilder
@@ -199,8 +199,8 @@ public class RabbitMQConfig {
                 .to(createNotificationDLQExchange());
     }
 
-    // RabbitAdmin fornece operações administrativas no RabbitMQ
-    // Usado para monitorar filas, exchanges e outras operações de gerenciamento
+    // RabbitAdmin provides administrative operations on RabbitMQ
+    // Used to monitor queues, exchanges and other management operations
     @Bean
     public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
         return new RabbitAdmin(connectionFactory);
