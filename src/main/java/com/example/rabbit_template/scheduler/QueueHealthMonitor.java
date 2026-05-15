@@ -19,13 +19,13 @@ public class QueueHealthMonitor {
     @Scheduled(fixedDelay = 10000)
     public void monitorQueueHealth() {
         try {
-            // Busca informações da fila PAYMENT_QUEUE
+            // Fetches information from the PAYMENT_QUEUE
             QueueInformation queueInfo = rabbitAdmin.getQueueInfo(PAYMENT_QUEUE);
 
-            // Verifica se tem 1 ou mais mensagens
+            // Checks if there are 1 or more messages
             assert queueInfo != null;
             if (queueInfo.getMessageCount() > 0) {
-                log.warn("Fila PAYMENT_QUEUE with {} messages", queueInfo.getMessageCount() );
+                log.warn("PAYMENT_QUEUE with {} messages", queueInfo.getMessageCount() );
             }
 
             log.info("Queue health check completed");

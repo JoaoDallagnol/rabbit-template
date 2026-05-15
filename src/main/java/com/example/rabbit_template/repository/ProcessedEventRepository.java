@@ -7,8 +7,8 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.util.UUID;
 
-// Repository para acessar registros de eventos processados
-// Permite verificar se um evento já foi processado por um listener específico
+// Repository to access processed event records
+// Allows checking if an event has already been processed by a specific listener
 @Repository
 public interface ProcessedEventRepository extends JpaRepository<ProcessedEvent, UUID> {
 

@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-// Entidade que rastreia eventos processados por cada listener
-// Permite idempotência granular: cada listener tem seu próprio registro
-// Suporta múltiplos listeners processando o mesmo evento (Fanout)
+// Entity that tracks events processed by each listener
+// Enables granular idempotency: each listener has its own record
+// Supports multiple listeners processing the same event (Fanout)
 @Entity
 @Table(name = "processed_events", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"event_id", "listener_name"})

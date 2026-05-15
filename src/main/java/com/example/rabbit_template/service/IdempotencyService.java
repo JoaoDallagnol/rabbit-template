@@ -17,9 +17,9 @@ public class IdempotencyService {
 
     private final ProcessedEventRepository processedEventRepository;
 
-    // Verifica se um evento já foi processado por um listener específico
-    // Retorna true se encontrar registro de processamento (sucesso ou falha)
-    // Retorna false se for a primeira vez que o listener processa este evento
+    // Checks if an event has already been processed by a specific listener
+    // Returns true if it finds a processing record (success or failure)
+    // Returns false if this is the first time the listener processes this event
     public boolean isAlreadyProcessed(UUID eventId, String listenerName) {
         try {
             Optional<ProcessedEvent> processedEvent = processedEventRepository
@@ -38,9 +38,9 @@ public class IdempotencyService {
         }
     }
 
-    // Registra que um evento foi processado por um listener
-    // Cria um novo registro em processed_events com eventId, listenerName e status
-    // Permite rastreamento granular: cada listener tem seu próprio registro
+    // Records that an event has been processed by a listener
+    // Creates a new record in processed_events with eventId, listenerName and status
+    // Enables granular tracking: each listener has its own record
     public void markAsProcessed(UUID eventId, String listenerName, String status) {
         try {
             ProcessedEvent processedEvent = ProcessedEvent.builder()
